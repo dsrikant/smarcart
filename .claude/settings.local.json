@@ -12,7 +12,21 @@
       "Bash(git diff*)",
       "Bash(node*)",
       "Bash(npx tsc*)",
-      "Bash(jest*)"
+      "Bash(jest*)",
+      "Bash(npm test:*)",
+      "Bash(npx jest:*)",
+      "Bash(node -e \"console.log\\(require\\(''./node_modules/react-native/package.json''\\).version\\)\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:v for k,v in d.get\\(''''peerDependencies'''',{}\\).items\\(\\)}, indent=2\\)\\)\")",
+      "Bash(ls *.d.ts)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\(''''types'''',''''''''\\), d.get\\(''''typings'''',''''''''\\)\\)\")",
+      "Bash(grep -l \"import { database } from ''@/db''\" src/hooks/*.ts)",
+      "Bash(for f:*)",
+      "Bash(do)",
+      "Bash(sed -i '' \"s/import { database } from ''@\\\\/db'';/import database from ''@\\\\/db'';/\" \"$f\")",
+      "Bash(done)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(brew install:*)"
     ],
     "deny": [
       "Bash(git push origin main)",
