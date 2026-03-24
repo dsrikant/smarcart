@@ -136,3 +136,37 @@ The following are **not implemented** in Phase 1 but noted here for Phase 2:
 - **`useStores` was available on `feat-phase1`** — The stores hook was already present without merging `p1-stores-ui`; it was reused as-is.
 - **Item deletion does not cascade to `list_items`** — WatermelonDB does not enforce FK cascades. Deleting an item leaves orphaned `list_item` rows. This is intentional for data safety; cleanup can be added later.
 - **`ItemFormSheet` uses the custom `BottomSheet` wrapper** — The existing `src/components/BottomSheet.tsx` component was used rather than `@gorhom/bottom-sheet` directly, matching the pattern in the Stores UI.
+
+---
+
+## p1-lists-ui: @tanstack/react-query instead of WatermelonDB reactive observe
+
+**Choice:** `@tanstack/react-query` for all `useListItems` queries
+**Why:** Every other hook in the codebase (`useItems`, `useStores`, `useListItemsByStore`, etc.) uses `@tanstack/react-query`. Introducing WatermelonDB's `.observe()` reactive pattern only for `useListItems` would create an inconsistent pattern and require a different data-flow model (Observable subscription vs Promise). Codebase consistency was chosen over spec-literal compliance.
+
+**Tradeoff:** React Query polls on refocus/stale rather than pushing DB changes reactively. In Phase 1 this is acceptable (manual-add flow). In Phase 2, when the voice widget writes to the DB, a short `staleTime` or explicit `invalidateQueries` call after each write achieves the same UX effect.
+
+---
+
+## p1-lists-ui: Custom BottomSheet component instead of @gorhom/bottom-sheet
+
+**Choice:** Used the existing `src/components/BottomSheet.tsx` (Modal + Animated.spring) for `AddItemSheet`
+**Why:** `@gorhom/bottom-sheet` is not in `package.json` and requires a native module (`expo prebuild`). Installing it would change the dependency graph without approval. The custom `BottomSheet` provides equivalent snap-height control via `snapHeight: 'half' | 'full'` prop.
+
+**Tradeoff:** The custom bottom sheet uses a `Modal` overlay rather than a true native bottom sheet. Gesture interplay (swipe-to-dismiss while scrolling content) is more limited than `@gorhom/bottom-sheet`.
+
+---
+
+## p1-lists-ui: Status left-border color uses inline style
+
+**Choice:** `style={{ borderLeftWidth: 3, backgroundColor: borderColor }}` on a `View` inside each `ListItemRow`
+**Why:** NativeWind cannot dynamically select arbitrary hex color values at runtime from Tailwind classes. Tailwind purges unused class names at build time, so `bg-[#14b8a6]` would only work if the value is known statically. The status color is computed from a `Record<ListItemStatus, string>` map at runtime, requiring an inline style.
+
+**Note:** Only this single property uses inline style; all layout, spacing, and typography use NativeWind classes.
+
+---
+
+## p1-lists-ui: AddItemSheet uses useItemSearch (not useItems)
+
+**Choice:** `AddItemSheet.tsx` imports `useItemSearch(query)` from `@/hooks/useItems` (built by p1-items-ui)
+**Why:** The p1-items-ui agent rewrote `useItems.ts` to separate `useItems()` (no-arg, full list) from `useItemSearch(query)` (memoized in-memory filter). The lists-ui branch was rebased onto p1-items-ui and updated accordingly.
