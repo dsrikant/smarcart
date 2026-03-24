@@ -1,13 +1,14 @@
 import { View, Text } from 'react-native';
 import { ListItemStatus, PurchaseStatus, AutomationType, RuleType } from '@/types/enums';
 
-type ChipVariant = 'pending' | 'purchasing' | 'purchased' | 'failed' | 'cancelled' |
+type ChipVariant = 'pending' | 'placed' | 'purchasing' | 'purchased' | 'failed' | 'cancelled' |
   'amazon' | 'instacart' | 'target' |
   'trigger' | 'min_value' | 'item_count' | 'scheduled' |
   'active' | 'inactive';
 
 const CHIP_STYLES: Record<ChipVariant, { bg: string; text: string; label: string }> = {
   pending:    { bg: 'bg-amber-100',  text: 'text-amber-700',  label: 'Pending' },
+  placed:     { bg: 'bg-green-100',  text: 'text-green-700',  label: 'Placed' },
   purchasing: { bg: 'bg-blue-100',   text: 'text-blue-700',   label: 'Purchasing' },
   purchased:  { bg: 'bg-green-100',  text: 'text-green-700',  label: 'Purchased' },
   failed:     { bg: 'bg-red-100',    text: 'text-red-700',    label: 'Failed' },
@@ -28,7 +29,13 @@ function listItemStatusToVariant(s: ListItemStatus): ChipVariant {
 }
 
 function purchaseStatusToVariant(s: PurchaseStatus): ChipVariant {
-  return s as ChipVariant;
+  const map: Record<PurchaseStatus, ChipVariant> = {
+    [PurchaseStatus.Pending]:   'pending',
+    [PurchaseStatus.Placed]:    'placed',
+    [PurchaseStatus.Failed]:    'failed',
+    [PurchaseStatus.Cancelled]: 'cancelled',
+  };
+  return map[s] ?? 'pending';
 }
 
 function automationTypeToVariant(t: AutomationType): ChipVariant {
