@@ -30,7 +30,7 @@ jest.mock('react-native', () => {
 });
 
 const mockCreateListItem = jest.fn().mockResolvedValue(undefined);
-const mockUseItems = jest.fn();
+const mockUseItemSearch = jest.fn();
 const mockRouterPush = jest.fn();
 
 jest.mock('expo-router', () => ({
@@ -50,7 +50,7 @@ jest.mock('../components/BottomSheet', () => {
 });
 
 jest.mock('../hooks/useItems', () => ({
-  useItems: (...args: any[]) => mockUseItems(...args),
+  useItemSearch: (...args: any[]) => mockUseItemSearch(...args),
 }));
 
 jest.mock('../hooks/useListItems', () => ({
@@ -88,7 +88,7 @@ function renderSheet(overrides: Partial<React.ComponentProps<typeof AddItemSheet
 describe('AddItemSheet', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseItems.mockReturnValue({ data: ITEMS });
+    mockUseItemSearch.mockReturnValue({ items: ITEMS });
   });
 
   it('renders item search input', () => {
@@ -99,7 +99,7 @@ describe('AddItemSheet', () => {
   it('useItemSearch called with current query string', () => {
     renderSheet();
     // Initial render with empty query
-    expect(mockUseItems).toHaveBeenCalledWith('');
+    expect(mockUseItemSearch).toHaveBeenCalledWith('');
   });
 
   it('item list renders search results', () => {
@@ -163,7 +163,7 @@ describe('AddItemSheet', () => {
 
   it('shows "No items found" when search returns empty', () => {
     // Mock: query has content but returns no results
-    mockUseItems.mockReturnValue({ data: [] });
+    mockUseItemSearch.mockReturnValue({ items: [] });
 
     const { getByLabelText, queryByText } = renderSheet();
 

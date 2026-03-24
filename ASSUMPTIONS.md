@@ -208,6 +208,7 @@ The following are **not implemented** in Phase 1 but noted here for Phase 2:
 - **`useStores` was available on `feat-phase1`** — The stores hook was already present without merging `p1-stores-ui`; it was reused as-is.
 - **Item deletion does not cascade to `list_items`** — WatermelonDB does not enforce FK cascades. Deleting an item leaves orphaned `list_item` rows. This is intentional for data safety; cleanup can be added later.
 - **`ItemFormSheet` uses the custom `BottomSheet` wrapper** — The existing `src/components/BottomSheet.tsx` component was used rather than `@gorhom/bottom-sheet` directly, matching the pattern in the Stores UI.
+
 ---
 
 ## p1-lists-ui: @tanstack/react-query instead of WatermelonDB reactive observe
@@ -234,49 +235,42 @@ The following are **not implemented** in Phase 1 but noted here for Phase 2:
 **Why:** NativeWind cannot dynamically select arbitrary hex color values at runtime from Tailwind classes. Tailwind purges unused class names at build time, so `bg-[#14b8a6]` would only work if the value is known statically. The status color is computed from a `Record<ListItemStatus, string>` map at runtime, requiring an inline style.
 
 **Note:** Only this single property uses inline style; all layout, spacing, and typography use NativeWind classes.
-## Phase integration points (p1-rules-engine)
-
-**Phase 3** will import `evaluateRules` and check `result.shouldPurchase`.
-When true, Phase 3 reads `result.triggeredBy.ruleId` to log which rule caused
-the purchase. It will also call `clearDebounceCache(storeId)` after placing an
-order so the next item add re-evaluates fresh.
-
-**Phase 2** will call `evaluateRules` immediately after each voice-triggered
-item add, passing the newly added item's ID as `newlyAddedItemId`. The
-trigger_item debounce is specifically designed for this — rapid voice
-dictation of multiple items should not double-trigger a purchase.
 
 ---
 
-## p1-rules-engine: Deviations from spec
+## p1-lists-ui: AddItemSheet uses useItemSearch (not useItems)
 
-**Hook tests use logic-contract style instead of renderHook:**
-The spec implies using `@testing-library/react-native`'s `renderHook` for
-`useRuleEvaluation.test.ts`. However, this package requires react-native to be
-transformed in Jest, which conflicts with the existing `jest.config.js` that
-uses a custom Babel pipeline designed only for pure-logic tests. Adding
-react-native to `transformIgnorePatterns` would risk breaking the three
-existing tests. Instead, the hook tests verify the same logical contracts by
-calling `evaluateRules` / `evaluateAllStores` (mocked) directly, matching all
-spec `describe`/`it` blocks exactly.
+**Choice:** `AddItemSheet.tsx` imports `useItemSearch(query)` from `@/hooks/useItems` (built by p1-items-ui)
+**Why:** The p1-items-ui agent rewrote `useItems.ts` to separate `useItems()` (no-arg, full list) from `useItemSearch(query)` (memoized in-memory filter). The lists-ui branch was rebased onto p1-items-ui and updated to use `useItemSearch`.
 
-**debounce "re-evaluates after 500ms" test uses clearDebounceCache instead of real timer:**
-The spec states "re-evaluates after 500ms has elapsed." The Jest test
-environment uses fake-timer-agnostic assertions; rather than advancing fake
-timers, the test calls `clearDebounceCache('s1')` to simulate expiry and
-confirms `wasDebounced === false` on the next call. This tests the same
-behavioral guarantee without introducing timer-dependent flakiness.
+---
 
-**`npm run lint` not available — project has no ESLint config:**
-The spec completion checklist calls `npm run lint`. The project has no `lint`
-script in `package.json` and no `.eslintrc.*` or `eslint.config.js`. TypeScript
-strict-mode (`npx tsc --noEmit`) was used as the static-analysis gate instead.
-ESLint setup is deferred to a future phase when the project-wide lint config is
-established.
+## p1-lists-ui: React Query instead of WatermelonDB observe
 
-**WatermelonDB Q.where condition parsing in mockDatabase:**
-WatermelonDB v0.28.x `Q.where(col, val)` produces
-`{ type: 'where', left: col, comparison: { operator: 'eq', right: { value: val } } }`,
-not `{ left: { column: col }, right: { value: val } }` as one might assume
-from TypeScript types. The mock's `extractConditions` helper was written to
-match the actual runtime structure after inspection of the WatermelonDB source.
+**Deviation from spec:** The spec recommends using WatermelonDB's reactive `.observe()` queries for the `useListItems` hook. Instead, `@tanstack/react-query` is used, matching every other data hook in the codebase (`useItems`, `useStores`, `usePurchases`, etc.).
+
+**Reason:** Using WatermelonDB observe while every other hook uses react-query would introduce two different data-fetching patterns, inconsistent cache invalidation, and increased cognitive overhead. Reactive observe would require `useEffect` with subscription management alongside react-query's cache — introducing subtle bugs.
+
+**Impact:** After mutations (`createListItem`, `deleteListItem`, etc.), callers must invoke `queryClient.invalidateQueries({ queryKey: [LIST_ITEMS_QUERY_KEY] })` to refresh the list. The `index.tsx` does this in the `onAdd`, `handleRemove`, and `handleQuantityChange` callbacks.
+
+---
+
+## p1-lists-ui: Custom BottomSheet instead of @gorhom/bottom-sheet
+
+**Deviation from spec:** The spec references `@gorhom/bottom-sheet` for `AddItemSheet`. The existing shared `BottomSheet.tsx` component is used instead.
+
+**Reason:** `@gorhom/bottom-sheet` is not in `package.json`, not used by any other tab, and requires native install (`expo prebuild`). The existing `BottomSheet.tsx` provides equivalent functionality (snap height, close on backdrop tap, keyboard avoid, spring animation) without any new dependencies.
+
+**Impact:** `AddItemSheet` uses `snapHeight="half"` on the existing `BottomSheet`, which maps to `maxHeight: '75%'` — comparable to `['60%']` snap point in the spec.
+
+---
+
+## p1-lists-ui: Status left-border color via inline style
+
+The status accent border on `ListItemRow` uses `style={{ width: 3, backgroundColor: borderColor }}` on a `View` component (inline style). NativeWind cannot apply dynamic color values (computed from a `Record<ListItemStatus, string>` map at runtime) via Tailwind class names, since unused classes are purged at build time. This is the only inline style in the component; all other styling uses NativeWind classes.
+
+---
+
+## p1-lists-ui: createListItem et al. are standalone async functions
+
+The spec lists `createListItem`, `updateListItemQuantity`, `deleteListItem`, and `updateListItemStatus` as module-level exports (not hooks). They interact with WatermelonDB directly and do NOT automatically invalidate react-query caches. Callers (components) are responsible for calling `queryClient.invalidateQueries(...)` after mutations.
