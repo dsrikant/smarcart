@@ -84,4 +84,28 @@ Where does the user find their retailer slug? Should the Stores form include a h
 
 ---
 
+---
+
+## Rules Engine (p1-rules-engine)
+
+**Q15. evaluationNote for inactive min_value / item_count rules**
+The spec provides an `evaluationNote` string only for inactive `trigger_item`
+rules (`"Trigger item rule is inactive"`). There is no specified string for
+inactive `min_value` or `item_count` rules. The current implementation reuses
+`"Trigger item rule is inactive"` as a placeholder. Should each rule type have
+its own inactive note (e.g. `"Min value rule is inactive"`,
+`"Item count rule is inactive"`)?
+
+**Q16. trigger_item pending note when triggerItemId is null**
+A `trigger_item` rule with `triggerItemId = null` is technically invalid but
+possible in the DB (field is optional). The engine currently uses an empty
+string for the item name in the "Waiting for trigger item…" note. Should rules
+with null `triggerItemId` be treated as inactive/invalid instead of pending?
+
+**Q17. evaluateAllStores — only active rules or all rules?**
+`evaluateAllStores` currently discovers stores by querying rules with
+`is_active = true`. Stores that only have inactive rules are excluded from the
+result map. Should the Rules tab show inactive-only stores too (requiring a
+query for all rules regardless of `is_active`)?
+
 *Last updated: 2026-03-24*
