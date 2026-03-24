@@ -169,4 +169,36 @@ The following are **not implemented** in Phase 1 but noted here for Phase 2:
 ## p1-lists-ui: AddItemSheet uses useItemSearch (not useItems)
 
 **Choice:** `AddItemSheet.tsx` imports `useItemSearch(query)` from `@/hooks/useItems` (built by p1-items-ui)
-**Why:** The p1-items-ui agent rewrote `useItems.ts` to separate `useItems()` (no-arg, full list) from `useItemSearch(query)` (memoized in-memory filter). The lists-ui branch was rebased onto p1-items-ui and updated accordingly.
+**Why:** The p1-items-ui agent rewrote `useItems.ts` to separate `useItems()` (no-arg, full list) from `useItemSearch(query)` (memoized in-memory filter). The lists-ui branch was rebased onto p1-items-ui and updated to use `useItemSearch`.
+
+---
+
+## p1-lists-ui: React Query instead of WatermelonDB observe
+
+**Deviation from spec:** The spec recommends using WatermelonDB's reactive `.observe()` queries for the `useListItems` hook. Instead, `@tanstack/react-query` is used, matching every other data hook in the codebase (`useItems`, `useStores`, `usePurchases`, etc.).
+
+**Reason:** Using WatermelonDB observe while every other hook uses react-query would introduce two different data-fetching patterns, inconsistent cache invalidation, and increased cognitive overhead. Reactive observe would require `useEffect` with subscription management alongside react-query's cache — introducing subtle bugs.
+
+**Impact:** After mutations (`createListItem`, `deleteListItem`, etc.), callers must invoke `queryClient.invalidateQueries({ queryKey: [LIST_ITEMS_QUERY_KEY] })` to refresh the list. The `index.tsx` does this in the `onAdd`, `handleRemove`, and `handleQuantityChange` callbacks.
+
+---
+
+## p1-lists-ui: Custom BottomSheet instead of @gorhom/bottom-sheet
+
+**Deviation from spec:** The spec references `@gorhom/bottom-sheet` for `AddItemSheet`. The existing shared `BottomSheet.tsx` component is used instead.
+
+**Reason:** `@gorhom/bottom-sheet` is not in `package.json`, not used by any other tab, and requires native install (`expo prebuild`). The existing `BottomSheet.tsx` provides equivalent functionality (snap height, close on backdrop tap, keyboard avoid, spring animation) without any new dependencies.
+
+**Impact:** `AddItemSheet` uses `snapHeight="half"` on the existing `BottomSheet`, which maps to `maxHeight: '75%'` — comparable to `['60%']` snap point in the spec.
+
+---
+
+## p1-lists-ui: Status left-border color via inline style
+
+The status accent border on `ListItemRow` uses `style={{ width: 3, backgroundColor: borderColor }}` on a `View` component (inline style). NativeWind cannot apply dynamic color values (computed from a `Record<ListItemStatus, string>` map at runtime) via Tailwind class names, since unused classes are purged at build time. This is the only inline style in the component; all other styling uses NativeWind classes.
+
+---
+
+## p1-lists-ui: createListItem et al. are standalone async functions
+
+The spec lists `createListItem`, `updateListItemQuantity`, `deleteListItem`, and `updateListItemStatus` as module-level exports (not hooks). They interact with WatermelonDB directly and do NOT automatically invalidate react-query caches. Callers (components) are responsible for calling `queryClient.invalidateQueries(...)` after mutations.

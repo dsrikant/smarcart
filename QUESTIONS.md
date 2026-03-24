@@ -94,3 +94,25 @@ The `Item` model has an `anchor_urls` field (JSON array of URLs for automation a
 ---
 
 *Last updated: 2026-03-24*
+
+---
+
+## p1-lists-ui: Voice transcript in list row
+
+**Q15. voice_transcript display in list row**
+The `list_items` table has a `voice_transcript` column populated in Phase 2. Should the Phase 1 list row ever display the transcript (e.g., as a tooltip or secondary label below the item name), or is it strictly a Phase 2 concern only visible in History?
+
+---
+
+## p1-lists-ui: Failed item retry flow
+
+**Q16. Failed item retry UX**
+The spec says tapping a failed item in Phase 1 shows an Alert: "Automatic purchase failed. Open the store app to complete this order." Should the failed state persist until manually cleared (user deletes the item), or should there be a "Mark as resolved" option in the Alert?
+
+---
+
+## p1-lists-ui: Section ordering for mixed statuses
+
+**Q17. Section ordering when a store has both pending and failed items**
+The spec says sections with `pending` items appear first. If a store has BOTH `pending` and `failed` items, it is correctly placed in the first tier. But what if a store has items where some are `purchasing` and some are `failed` — no `pending` at all? Should it go in tier 1 (has active items) or tier 2 (no pending)?
+
