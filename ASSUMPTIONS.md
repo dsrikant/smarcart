@@ -163,6 +163,13 @@ timers, the test calls `clearDebounceCache('s1')` to simulate expiry and
 confirms `wasDebounced === false` on the next call. This tests the same
 behavioral guarantee without introducing timer-dependent flakiness.
 
+**`npm run lint` not available — project has no ESLint config:**
+The spec completion checklist calls `npm run lint`. The project has no `lint`
+script in `package.json` and no `.eslintrc.*` or `eslint.config.js`. TypeScript
+strict-mode (`npx tsc --noEmit`) was used as the static-analysis gate instead.
+ESLint setup is deferred to a future phase when the project-wide lint config is
+established.
+
 **WatermelonDB Q.where condition parsing in mockDatabase:**
 WatermelonDB v0.28.x `Q.where(col, val)` produces
 `{ type: 'where', left: col, comparison: { operator: 'eq', right: { value: val } } }`,
