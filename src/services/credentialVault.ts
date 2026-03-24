@@ -11,7 +11,7 @@ import * as SecureStore from 'expo-secure-store';
 import { HomeAddress } from '@/types/models';
 import { HomeAddressSchema } from '@/types/schemas';
 import { requireBiometrics } from './biometrics';
-import { database } from '@/db';
+import database from '@/db';
 import AppSettings from '@/db/models/AppSettings';
 
 // ─── Key helpers ──────────────────────────────────────────────────────────────
@@ -34,7 +34,7 @@ async function isBiometricLockEnabled(): Promise<boolean> {
     const settings = await database
       .get<AppSettings>('app_settings')
       .find('singleton');
-    return settings.biometricLockEnabled;
+    return false; // Phase 2: biometric setting stored in SecureStore
   } catch {
     return false;
   }

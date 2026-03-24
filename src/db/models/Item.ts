@@ -1,7 +1,22 @@
 import { Model } from '@nozbe/watermelondb';
-import { field, relation, children, readonly, date } from '@nozbe/watermelondb/decorators';
-import { UnitType } from '@/types/enums';
-import Store from './Store';
+import {
+  field,
+  date,
+  readonly,
+  relation,
+  json,
+} from '@nozbe/watermelondb/decorators';
+import type Store from './Store';
+import { UnitType } from '../../types/enums';
+
+export { UnitType };
+
+export type AnchorUrls = Record<string, string>; // { [storeId]: productUrl }
+
+const sanitizeAnchorUrls = (raw: unknown): AnchorUrls => {
+  if (typeof raw === 'object' && raw !== null) return raw as AnchorUrls;
+  return {};
+};
 
 export default class Item extends Model {
   static table = 'items';
@@ -16,21 +31,11 @@ export default class Item extends Model {
   @field('default_brand') defaultBrand!: string | null;
   @field('unit_type') unitType!: UnitType;
   @field('reorder_qty') reorderQty!: number;
-  @field('anchor_urls') anchorUrlsJson!: string; // raw JSON string
+  @json('anchor_urls', sanitizeAnchorUrls) anchorUrls!: AnchorUrls;
   @field('estimated_price_cents') estimatedPriceCents!: number | null;
   @field('notes') notes!: string | null;
   @readonly @date('created_at') createdAt!: Date;
   @date('updated_at') updatedAt!: Date;
 
   @relation('stores', 'default_store_id') defaultStore!: Store;
-
-  @children('list_items') listItems!: any;
-
-  get anchorUrls(): Record<string, string> {
-    try {
-      return JSON.parse(this.anchorUrlsJson || '{}') as Record<string, string>;
-    } catch {
-      return {};
-    }
-  }
 }

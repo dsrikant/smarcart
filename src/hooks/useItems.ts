@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Q } from '@nozbe/watermelondb';
-import { database } from '@/db';
+import database from '@/db';
 import Item from '@/db/models/Item';
 import { UnitType } from '@/types/enums';
 
@@ -52,7 +52,7 @@ export function useCreateItem() {
           record.defaultBrand = payload.defaultBrand;
           record.unitType = payload.unitType;
           record.reorderQty = payload.reorderQty;
-          record.anchorUrlsJson = '{}';
+          record.anchorUrls = {};
           record.estimatedPriceCents = payload.estimatedPriceCents;
           record.notes = payload.notes;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any

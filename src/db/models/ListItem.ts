@@ -1,8 +1,14 @@
 import { Model } from '@nozbe/watermelondb';
-import { field, relation, date } from '@nozbe/watermelondb/decorators';
-import { ListItemStatus } from '@/types/enums';
-import Item from './Item';
-import Store from './Store';
+import {
+  field,
+  date,
+  relation,
+} from '@nozbe/watermelondb/decorators';
+import type Store from './Store';
+import type Item from './Item';
+import { ListItemStatus } from '../../types/enums';
+
+export { ListItemStatus };
 
 export default class ListItem extends Model {
   static table = 'list_items';
@@ -15,7 +21,7 @@ export default class ListItem extends Model {
   @field('store_id') storeId!: string;
   @field('status') status!: ListItemStatus;
   @field('quantity') quantity!: number;
-  @field('added_at') addedAt!: number;
+  @date('added_at') addedAt!: Date;
   @field('voice_transcript') voiceTranscript!: string | null;
   @field('confidence_score') confidenceScore!: number | null;
   @date('updated_at') updatedAt!: Date;

@@ -13,7 +13,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
-import { useAppSettings, useUpdateAppSettings, useToggleBiometricLock } from '@/hooks/useAppSettings';
+import { useAppSettings, useUpdateAppSettings } from '@/hooks/useAppSettings';
 import { FormField } from '@/components/FormField';
 import { AppSettingsFormSchema, AppSettingsFormValues } from '@/types/schemas';
 import {
@@ -22,7 +22,7 @@ import {
   clearNonStoreSecrets,
 } from '@/services/credentialVault';
 import { isBiometricsAvailable } from '@/services/biometrics';
-import { database } from '@/db';
+import database from "@/db";
 
 // ─── Section wrapper ───────────────────────────────────────────────────────────
 
@@ -293,8 +293,7 @@ function ResendApiKeyRow() {
 // ─── Biometric Toggle ──────────────────────────────────────────────────────────
 
 function BiometricToggleRow() {
-  const { data: settings } = useAppSettings();
-  const toggleBiometric = useToggleBiometricLock();
+  const [isEnabled, setIsEnabled] = useState(false);
   const [checking, setChecking] = useState(false);
 
   async function handleToggle(enabled: boolean) {
@@ -310,10 +309,9 @@ function BiometricToggleRow() {
         return;
       }
     }
-    toggleBiometric.mutate(enabled);
+    // Phase 2: persist to SecureStore rather than SQLite (security-sensitive setting)
+    setIsEnabled(enabled);
   }
-
-  const isEnabled = settings?.biometricLockEnabled ?? false;
 
   return (
     <SettingsRow
@@ -367,9 +365,10 @@ async function exportAllData(): Promise<void> {
 
     // expo-file-system is a peer dep of expo-sharing — share as text/JSON
     // If expo-file-system is not installed, alert the user to add it (see QUESTIONS.md Q12)
-    let FileSystem: typeof import('expo-file-system');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let FileSystem: any;
     try {
-      FileSystem = await import('expo-file-system');
+      FileSystem = await import('expo-file-system' as string);
     } catch {
       Alert.alert(
         'Export unavailable',

@@ -1,11 +1,25 @@
 module.exports = {
-  preset: 'jest-expo',
-  setupFilesAfterFramework: ['@testing-library/react-native/extend-expect'],
+  watchman: false,
+  testEnvironment: 'node',
+  transform: {
+    '\\.[jt]sx?$': [
+      'babel-jest',
+      {
+        configFile: false,
+        presets: ['@babel/preset-typescript'],
+        plugins: [
+          '@babel/plugin-transform-modules-commonjs',
+          ['@babel/plugin-proposal-decorators', { legacy: true }],
+          '@babel/plugin-transform-class-properties',
+        ],
+      },
+    ],
+  },
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|@nozbe/watermelondb)',
+    'node_modules/(?!@nozbe/watermelondb)',
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
-  testPathPattern: '__tests__',
+  testMatch: ['**/__tests__/**/*.test.ts?(x)'],
 };

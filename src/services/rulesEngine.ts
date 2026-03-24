@@ -9,7 +9,7 @@
  */
 
 import { Q } from '@nozbe/watermelondb';
-import { database } from '@/db';
+import database from '@/db';
 import ListItem from '@/db/models/ListItem';
 import PurchaseRule from '@/db/models/PurchaseRule';
 import { ListItemStatus, RuleType } from '@/types/enums';
