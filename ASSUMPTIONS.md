@@ -69,12 +69,12 @@ Settings is a stack route (`/settings`) accessible via a gear icon in every tab'
 
 ## WatermelonDB Migration Strategy
 
-- Version starts at `1`. Every schema change in future phases requires:
+- Version starts at `2`. The p1-scaffold agent initialised the project with `version: 1` internally, but the p1-db-schema agent began at version 2 to leave room for any scaffold-level migration that may be inserted retroactively. Every schema change in future phases requires:
   1. Bumping `appSchema({ version: N })` in `schema.ts`
   2. Adding a new entry `{ toVersion: N, steps: [...] }` in `migrations.ts`
   3. Only `addColumns` and `createTable` are safe without data loss. Column drops require a full migration.
 
-- The Phase 1 migration creates all 8 tables in a single `toVersion: 1` step.
+- The initial Phase 1 migration creates all 8 tables in a single `toVersion: 2` step. The `db.migrations.test.ts` tests against version 2 accordingly.
 
 ---
 
@@ -107,11 +107,40 @@ This is preferable to a fully bare workflow because:
 | Package | Version | Note |
 |---|---|---|
 | expo | ~55.0.8 | SDK 55 — React Native 0.83 |
-| @nozbe/watermelondb | ^0.28.0 | Stable; JSI disabled (jsi: false) until New Arch validated |
+| @nozbe/watermelondb | ^0.28.0 | Stable; JSI enabled (jsi: true) — matches spec default. Disable to jsi: false if JSI crashes appear on emulators. |
 | nativewind | ^4.2.3 | Requires babel plugin + metro transform |
 | @tanstack/react-query | ^5.95.2 | v5 API (no deprecated useQuery options) |
 | zod | ^4.3.6 | v4; `z.nativeEnum` still supported |
 | @hookform/resolvers | ^5.2.2 | v5; compatible with zod v4 |
+
+---
+
+## Enum Types in src/types/enums.ts (deviation from p1-db-schema spec)
+
+The p1-db-schema spec placed type aliases (string unions) inline inside each model file (e.g. `export type AutomationType = "direct_amazon" | ...` in `Store.ts`). The implementation instead defines these as TypeScript `enum` values in `src/types/enums.ts` and re-exports them from each model. Reasons:
+
+1. Zod's `z.nativeEnum()` in `src/types/schemas.ts` requires real enum objects, not string union types.
+2. Centralising enums prevents copy-paste drift between model types and form schema types.
+3. The runtime string values are identical (e.g. `AutomationType.DirectAmazon === "direct_amazon"`), so WatermelonDB column storage is unaffected.
+
+---
+
+## Credential Vault Extra Functions (beyond p1-credential-vault spec)
+
+`src/services/credentialVault.ts` exports several functions not listed in the spec. These were added to support Phase 1 UI screens and are safe additions:
+
+- `deleteResendApiKey()` — explicit deletion without full clearAllCredentials
+- `hasResendApiKey()` — UI state check (no biometric gate, analogous to hasStoreCredentials)
+- `setHomeAddress(address)` / `getHomeAddress()` — stores the user's delivery address in SecureStore rather than plain SQLite; gated by biometrics on read
+- `clearNonStoreSecrets()` has been replaced by the spec-compliant `clearAllCredentials()` which clears store credentials too, requires biometrics, and returns a deletion count
+
+The `app_home_address_full` SecureStore key is app-scoped and follows the same naming convention as `app_resend_api_key`.
+
+---
+
+## Phase 3 Integration Points (Credential Vault)
+
+The Node.js sidecar running on localhost:3421 in Phase 3 will call `getStoreCredentials(storeId)` and `getSessionCookie(storeId)` before launching Playwright to place orders. The Phase 3 sidecar must handle `BiometricAuthError` — if the device is locked, the sidecar should surface a prompt to the user rather than failing silently.
 
 ---
 
