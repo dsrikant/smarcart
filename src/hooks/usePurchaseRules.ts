@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Q } from '@nozbe/watermelondb';
-import { database } from '@/db';
+import database from '@/db';
 import PurchaseRule from '@/db/models/PurchaseRule';
 import Store from '@/db/models/Store';
 import Item from '@/db/models/Item';

@@ -1,8 +1,7 @@
 import '../global.css';
-import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { database, seedAppSettings } from '@/db';
+import database from '@/db';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -14,12 +13,6 @@ const queryClient = new QueryClient({
 });
 
 export default function RootLayout() {
-  useEffect(() => {
-    seedAppSettings().catch((err) =>
-      console.error('[RootLayout] seedAppSettings error:', err)
-    );
-  }, []);
-
   // database is imported directly in hooks — no DatabaseProvider needed
   void database; // ensures the singleton is initialized at app start
 

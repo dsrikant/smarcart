@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Q } from '@nozbe/watermelondb';
-import { database } from '@/db';
+import database from '@/db';
 import Purchase from '@/db/models/Purchase';
 import PurchaseItem from '@/db/models/PurchaseItem';
 import Store from '@/db/models/Store';

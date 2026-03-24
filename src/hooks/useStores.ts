@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Q } from '@nozbe/watermelondb';
-import { database } from '@/db';
+import database from '@/db';
 import Store from '@/db/models/Store';
 import { AutomationType, DeliveryPreference } from '@/types/enums';
 

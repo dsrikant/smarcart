@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Q } from '@nozbe/watermelondb';
-import { database } from '@/db';
+import database from '@/db';
 import ListItem from '@/db/models/ListItem';
 import Item from '@/db/models/Item';
 import Store from '@/db/models/Store';
@@ -90,7 +90,7 @@ export function useCreateListItem() {
           record.storeId = payload.storeId;
           record.status = ListItemStatus.Pending;
           record.quantity = payload.quantity;
-          record.addedAt = Date.now();
+          record.addedAt = new Date();
           record.voiceTranscript = null;
           record.confidenceScore = null;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any

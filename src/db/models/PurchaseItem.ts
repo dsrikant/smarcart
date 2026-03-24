@@ -1,7 +1,7 @@
 import { Model } from '@nozbe/watermelondb';
 import { field, relation } from '@nozbe/watermelondb/decorators';
-import Item from './Item';
-import Purchase from './Purchase';
+import type Purchase from './Purchase';
+import type Item from './Item';
 
 export default class PurchaseItem extends Model {
   static table = 'purchase_items';

@@ -1,7 +1,31 @@
 import { Model } from '@nozbe/watermelondb';
-import { field, relation, children, readonly, date } from '@nozbe/watermelondb/decorators';
-import { PurchaseStatus } from '@/types/enums';
-import Store from './Store';
+import {
+  field,
+  date,
+  readonly,
+  relation,
+  children,
+  json,
+} from '@nozbe/watermelondb/decorators';
+import type { Query } from '@nozbe/watermelondb';
+import type Store from './Store';
+import type PurchaseItem from './PurchaseItem';
+import { PurchaseStatus } from '../../types/enums';
+
+export { PurchaseStatus };
+
+export type PurchaseItemSnapshot = {
+  itemId: string;
+  canonicalName: string;
+  brand: string | null;
+  quantity: number;
+  priceCents: number | null;
+};
+
+const sanitizeItemsJson = (raw: unknown): PurchaseItemSnapshot[] => {
+  if (Array.isArray(raw)) return raw as PurchaseItemSnapshot[];
+  return [];
+};
 
 export default class Purchase extends Model {
   static table = 'purchases';
@@ -12,12 +36,12 @@ export default class Purchase extends Model {
 
   @field('store_id') storeId!: string;
   @field('order_id') orderId!: string | null;
-  @field('placed_at') placedAt!: number;
+  @date('placed_at') placedAt!: Date;
   @field('total_amount_cents') totalAmountCents!: number | null;
   @field('status') status!: PurchaseStatus;
-  @field('items_json') itemsJson!: string;
+  @json('items_json', sanitizeItemsJson) itemsJson!: PurchaseItemSnapshot[];
   @readonly @date('created_at') createdAt!: Date;
 
   @relation('stores', 'store_id') store!: Store;
-  @children('purchase_items') purchaseItems!: any;
+  @children('purchase_items') purchaseItems!: Query<PurchaseItem>;
 }

@@ -5,7 +5,7 @@ import { usePurchases, usePurchaseItems, PurchaseWithStore } from '@/hooks/usePu
 import { EmptyState } from '@/components/EmptyState';
 import { StatusChip, purchaseStatusToVariant } from '@/components/StatusChip';
 import { PurchaseStatus } from '@/types/enums';
-import Purchase from '@/db/models/Purchase';
+import type { PurchaseItemSnapshot } from '@/db/models/Purchase';
 
 // ─── Line items (expanded) ─────────────────────────────────────────────────────
 
@@ -61,8 +61,8 @@ function PurchaseLineItems({ purchaseId }: { purchaseId: string }) {
 
 // ─── Purchase Row ──────────────────────────────────────────────────────────────
 
-function formatDate(timestamp: number): string {
-  const d = new Date(timestamp);
+function formatDate(date: Date | number): string {
+  const d = date instanceof Date ? date : new Date(date);
   return d.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -70,14 +70,8 @@ function formatDate(timestamp: number): string {
   });
 }
 
-function itemCountFromJson(itemsJson: string): number {
-  try {
-    const parsed: unknown = JSON.parse(itemsJson);
-    if (Array.isArray(parsed)) return parsed.length;
-    return 0;
-  } catch {
-    return 0;
-  }
+function itemCountFromJson(itemsJson: PurchaseItemSnapshot[]): number {
+  return Array.isArray(itemsJson) ? itemsJson.length : 0;
 }
 
 interface PurchaseRowProps {

@@ -1,14 +1,23 @@
 import { Model } from '@nozbe/watermelondb';
-import { field, children, readonly, date } from '@nozbe/watermelondb/decorators';
-import { AutomationType, DeliveryPreference } from '@/types/enums';
+import {
+  field,
+  date,
+  readonly,
+  children,
+} from '@nozbe/watermelondb/decorators';
+import type { Query } from '@nozbe/watermelondb';
+import type ListItem from './ListItem';
+import type PurchaseRule from './PurchaseRule';
+import { AutomationType, DeliveryPreference } from '../../types/enums';
+
+export { AutomationType, DeliveryPreference };
 
 export default class Store extends Model {
   static table = 'stores';
   static associations = {
     list_items: { type: 'has_many' as const, foreignKey: 'store_id' },
-    items: { type: 'has_many' as const, foreignKey: 'default_store_id' },
-    purchases: { type: 'has_many' as const, foreignKey: 'store_id' },
     purchase_rules: { type: 'has_many' as const, foreignKey: 'store_id' },
+    purchases: { type: 'has_many' as const, foreignKey: 'store_id' },
   };
 
   @field('name') name!: string;
@@ -19,6 +28,6 @@ export default class Store extends Model {
   @readonly @date('created_at') createdAt!: Date;
   @date('updated_at') updatedAt!: Date;
 
-  @children('list_items') listItems!: any;
-  @children('purchase_rules') purchaseRules!: any;
+  @children('list_items') listItems!: Query<ListItem>;
+  @children('purchase_rules') purchaseRules!: Query<PurchaseRule>;
 }

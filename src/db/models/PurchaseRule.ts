@@ -1,8 +1,15 @@
 import { Model } from '@nozbe/watermelondb';
-import { field, relation, readonly, date } from '@nozbe/watermelondb/decorators';
-import { RuleType } from '@/types/enums';
-import Item from './Item';
-import Store from './Store';
+import {
+  field,
+  date,
+  readonly,
+  relation,
+} from '@nozbe/watermelondb/decorators';
+import type Store from './Store';
+import type Item from './Item';
+import { RuleType } from '../../types/enums';
+
+export { RuleType };
 
 export default class PurchaseRule extends Model {
   static table = 'purchase_rules';

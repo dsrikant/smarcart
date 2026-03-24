@@ -1,6 +1,27 @@
 import { Model } from '@nozbe/watermelondb';
-import { field, relation, readonly, date } from '@nozbe/watermelondb/decorators';
-import Item from './Item';
+import {
+  field,
+  date,
+  readonly,
+  relation,
+  json,
+} from '@nozbe/watermelondb/decorators';
+import type Item from './Item';
+
+export type ParsedIntent = {
+  itemName: string;
+  quantity: number;
+  storeId: string;
+  brand: string | null;
+  confidence: number;
+  isNewItem: boolean;
+  urgency: 'normal' | 'urgent';
+};
+
+const sanitizeParsedJson = (raw: unknown): ParsedIntent | null => {
+  if (typeof raw === 'object' && raw !== null) return raw as ParsedIntent;
+  return null;
+};
 
 export default class VoiceLog extends Model {
   static table = 'voice_logs';
@@ -9,7 +30,7 @@ export default class VoiceLog extends Model {
   };
 
   @field('transcript') transcript!: string;
-  @field('parsed_json') parsedJson!: string | null;
+  @json('parsed_json', sanitizeParsedJson) parsedJson!: ParsedIntent | null;
   @field('item_id') itemId!: string | null;
   @field('was_corrected') wasCorrected!: boolean;
   @readonly @date('created_at') createdAt!: Date;

@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 1,
+  version: 2,
   tables: [
     tableSchema({
       name: 'stores',
@@ -23,7 +23,7 @@ export const schema = appSchema({
         { name: 'default_brand', type: 'string', isOptional: true },
         { name: 'unit_type', type: 'string' },
         { name: 'reorder_qty', type: 'number' },
-        { name: 'anchor_urls', type: 'string' }, // JSON string
+        { name: 'anchor_urls', type: 'string', isOptional: true },
         { name: 'estimated_price_cents', type: 'number', isOptional: true },
         { name: 'notes', type: 'string', isOptional: true },
         { name: 'created_at', type: 'number' },
@@ -72,7 +72,7 @@ export const schema = appSchema({
       columns: [
         { name: 'transcript', type: 'string' },
         { name: 'parsed_json', type: 'string', isOptional: true },
-        { name: 'item_id', type: 'string', isOptional: true },
+        { name: 'item_id', type: 'string', isIndexed: true, isOptional: true },
         { name: 'was_corrected', type: 'boolean' },
         { name: 'created_at', type: 'number' },
       ],
@@ -82,7 +82,7 @@ export const schema = appSchema({
       columns: [
         { name: 'store_id', type: 'string', isIndexed: true },
         { name: 'rule_type', type: 'string' },
-        { name: 'trigger_item_id', type: 'string', isOptional: true },
+        { name: 'trigger_item_id', type: 'string', isIndexed: true, isOptional: true },
         { name: 'min_order_value_cents', type: 'number', isOptional: true },
         { name: 'min_item_count', type: 'number', isOptional: true },
         { name: 'cron_expression', type: 'string', isOptional: true },
@@ -99,9 +99,10 @@ export const schema = appSchema({
         { name: 'home_city', type: 'string', isOptional: true },
         { name: 'home_zip', type: 'string', isOptional: true },
         { name: 'confirmation_email', type: 'string', isOptional: true },
-        { name: 'biometric_lock_enabled', type: 'boolean' },
         { name: 'updated_at', type: 'number' },
       ],
     }),
   ],
 });
+
+export default schema;

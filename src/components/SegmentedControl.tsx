@@ -6,7 +6,7 @@ interface Option<T extends string> {
 }
 
 interface Props<T extends string> {
-  options: Option<T>[];
+  options: readonly Option<T>[];
   value: T;
   onChange: (value: T) => void;
   label?: string;
