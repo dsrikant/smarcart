@@ -1,12 +1,16 @@
 module.exports = {
   watchman: false,
   testEnvironment: 'node',
+  setupFiles: ['<rootDir>/jest.setup.js'],
   transform: {
     '\\.[jt]sx?$': [
       'babel-jest',
       {
         configFile: false,
-        presets: ['@babel/preset-typescript'],
+        presets: [
+          '@babel/preset-typescript',
+          ['@babel/preset-react', { runtime: 'automatic' }],
+        ],
         plugins: [
           '@babel/plugin-transform-modules-commonjs',
           ['@babel/plugin-proposal-decorators', { legacy: true }],

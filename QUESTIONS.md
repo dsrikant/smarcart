@@ -82,6 +82,15 @@ Where does the user find their retailer slug? Should the Stores form include a h
 **Q14. Target Direct automation scope**
 "Direct Target" automation is one of the three types. Does this mean Target.com directly, or Target via Instacart? If Target.com directly, does Phase 2 use Playwright/browser automation similar to Amazon, or Target's API?
 
+**Q15. `ItemCard` store name — prop vs. relation?**
+`ItemCard` currently receives `storeName: string` as a prop resolved by the parent screen. Should this instead be resolved via WatermelonDB's `@relation` on the `Item` model (which would make `ItemCard` fully self-contained but may cause N+1 queries)?
+
+**Q16. Item deletion cascade to `list_items`?**
+Deleting an item via `deleteItem()` leaves orphaned `list_item` rows that reference the deleted item ID. Should `deleteItem` also query and destroy related `list_items`? Or should the UI prevent deletion of items that appear on active lists?
+
+**Q17. `anchor_urls` management UI**
+The `Item` model has an `anchor_urls` field (JSON array of URLs for automation anchors). There is currently no UI for managing this field in `ItemFormSheet`. Should it be exposed as a tag-style multi-input, or is it developer-only configuration?
+
 ---
 
 *Last updated: 2026-03-24*

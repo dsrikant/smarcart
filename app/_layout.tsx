@@ -1,16 +1,8 @@
 import '../global.css';
 import { Stack } from 'expo-router';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import database from '@/db';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 30, // 30s
-      retry: 1,
-    },
-  },
-});
+import queryClient from '@/lib/queryClient';
 
 export default function RootLayout() {
   // database is imported directly in hooks — no DatabaseProvider needed

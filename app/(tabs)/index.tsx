@@ -302,7 +302,7 @@ function StoreSectionHeader({ store, count }: { store: Store; count: number }) {
 export default function ListsScreen() {
   const { data: allItems, isLoading: listLoading } = useAllListItems();
   const { data: activeStores, isLoading: storesLoading } = useActiveStores();
-  const { data: catalogItems = [] } = useItems();
+  const { items: catalogItems } = useItems();
   const deleteListItem = useDeleteListItem();
 
   const [addSheetVisible, setAddSheetVisible] = useState(false);

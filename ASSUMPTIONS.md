@@ -127,3 +127,12 @@ The following are **not implemented** in Phase 1 but noted here for Phase 2:
 - WorkManager integration for `RuleType.Scheduled` (Phase 3)
 - Voice widget for home screen (Phase 2)
 - `android/app/src/main/java/…/SmartCartWidget.kt` — Android app widget
+
+## Items UI (feature/p1-items-ui)
+
+- **`ItemCard` receives `storeName` as a prop** — Resolved via the parent screen (which has the full store list from `useStores`) to avoid N+1 DB queries inside the card component.
+- **Store name pill implemented inline in `ItemCard`** — No shared `StoreBadge` component existed on `feat-phase1`; the teal pill style from `StoreCard` was recreated inline. Extraction to a shared component is deferred.
+- **Standalone mutation functions use a singleton `queryClient`** — `createItem`, `updateItem`, and `deleteItem` are plain async functions (not React hooks), so they import `queryClient` from `src/lib/queryClient.ts` to call `invalidateQueries` imperatively. `app/_layout.tsx` was updated to use the same singleton.
+- **`useStores` was available on `feat-phase1`** — The stores hook was already present without merging `p1-stores-ui`; it was reused as-is.
+- **Item deletion does not cascade to `list_items`** — WatermelonDB does not enforce FK cascades. Deleting an item leaves orphaned `list_item` rows. This is intentional for data safety; cleanup can be added later.
+- **`ItemFormSheet` uses the custom `BottomSheet` wrapper** — The existing `src/components/BottomSheet.tsx` component was used rather than `@gorhom/bottom-sheet` directly, matching the pattern in the Stores UI.
