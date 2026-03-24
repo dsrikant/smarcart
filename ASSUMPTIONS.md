@@ -115,6 +115,49 @@ This is preferable to a fully bare workflow because:
 
 ---
 
+---
+
+## p1-history-ui: No pagination in Phase 1
+
+All purchase records are loaded in a single query sorted by `placed_at` descending. WatermelonDB reactive updates handle new records arriving after Phase 4 completes an autonomous purchase. If the purchase history grows large, Phase 4 should add cursor-based pagination (a `LIMIT`/`OFFSET` query clause via `Q.skip` / `Q.take`).
+
+---
+
+## p1-history-ui: Expanded state is local UI state only
+
+The set of expanded purchase row IDs (`Set<string>`) lives in `useState` in the History screen. It is not persisted to WatermelonDB or AsyncStorage. A full app restart collapses all rows.
+
+---
+
+## p1-history-ui: Date formatting uses plain Date methods (no date library)
+
+`formatDate` / `formatDateShort` are implemented with `Date.prototype.getFullYear()`, `.getMonth()`, `.getDate()`, `.getDay()`. No `moment`, `date-fns`, or `dayjs` is added. Rationale: these libraries add non-trivial bundle size for a feature that only needs relative-day display and short-date formatting.
+
+---
+
+## p1-history-ui: purchaseStatusToVariant uses explicit Record map
+
+The original `StatusChip.tsx` cast `PurchaseStatus` to `ChipVariant` with `as ChipVariant`. `PurchaseStatus.Placed = 'placed'` was not a key in `ChipVariant` / `CHIP_STYLES`, which would have caused a runtime crash. The fix adds `'placed'` to both types and uses an explicit `Record<PurchaseStatus, ChipVariant>` map so exhaustiveness is compile-checked.
+
+---
+
+## p1-history-ui: Component and hook tests run in node environment
+
+React component rendering uses `react-test-renderer` (not `@testing-library/react-native`) because the project jest config uses `testEnvironment: 'node'`. `react-native` is mocked in `src/__tests__/__mocks__/react-native.js` to avoid native bridge dependencies. `@babel/preset-react` was added to the jest transform to support JSX in test files.
+
+---
+
+## p1-history-ui: Pre-existing TypeScript errors in feat-phase1
+
+Running `npx tsc --noEmit` on the `feat-phase1` base shows 7 TypeScript errors in `app/(tabs)/items.tsx`, `app/(tabs)/index.tsx`, `app/(tabs)/rules.tsx`, and `src/__tests__/useItems.test.ts` — all from incomplete p1-items-ui API surface changes (`useItems` return shape / export name changes). These errors are pre-existing and not introduced by p1-history-ui. All files touched by this branch (`app/(tabs)/history.tsx`, `src/components/StatusChip.tsx`, `jest.config.js`, test files) are error-free.
+
+---
+
+## Phase integration points (p1-history-ui)
+
+**Phase 2** will call `usePurchases` indirectly through the brand inference flow. The Claude API prompt will receive a formatted list of recent purchases for an item, built from `purchase_items.brand` and `purchase_items.product_title`. The `purchase_items` schema must not change between phases.
+
+**Phase 4** will write to `purchases` and `purchase_items` after each autonomous checkout. It will also call `updateListItemStatus` (from `useListItems`) to mark purchased items as `purchased`. The History tab will reactively update via WatermelonDB without any code changes in this agent.
 ## Enum Types in src/types/enums.ts (deviation from p1-db-schema spec)
 
 The p1-db-schema spec placed type aliases (string unions) inline inside each model file (e.g. `export type AutomationType = "direct_amazon" | ...` in `Store.ts`). The implementation instead defines these as TypeScript `enum` values in `src/types/enums.ts` and re-exports them from each model. Reasons:

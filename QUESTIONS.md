@@ -95,6 +95,16 @@ The `Item` model has an `anchor_urls` field (JSON array of URLs for automation a
 
 ---
 
+## p1-history-ui Questions
+
+**Q15. History tab — should "Total spent" header be shown?**
+The spec calls for a "Total spent: $[amount]" summary line below the "Purchase History" header. The current implementation omits this header row and shows the full list directly. Should a sticky header with the running total be added in Phase 1, or deferred until Phase 4 has written at least one purchase record?
+
+**Q16. History tab — pull-to-refresh needed?**
+The spec notes that WatermelonDB reactive queries eliminate the need for pull-to-refresh. However, `usePurchases` uses React Query's `useQuery` (not a WatermelonDB `observe()` subscription), which is NOT live-reactive. Should this hook be converted to a WatermelonDB observer (`useObservable`) so Phase 4 writes appear without any user gesture?
+
+**Q17. Pre-existing TypeScript errors in feat-phase1**
+`app/(tabs)/items.tsx`, `app/(tabs)/index.tsx`, `app/(tabs)/rules.tsx`, and `src/__tests__/useItems.test.ts` have TypeScript errors from a p1-items-ui API shape inconsistency (`useItems` return value / export name mismatch). Should these be fixed on `feature/p1-history-ui` or deferred to `feature/p1-items-ui`?
 ## Rules Engine (p1-rules-engine)
 
 **Q15. evaluationNote for inactive min_value / item_count rules**
