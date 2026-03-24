@@ -93,6 +93,40 @@ The `Item` model has an `anchor_urls` field (JSON array of URLs for automation a
 
 ---
 
+---
+
+## p1-history-ui Questions
+
+**Q15. History tab — should "Total spent" header be shown?**
+The spec calls for a "Total spent: $[amount]" summary line below the "Purchase History" header. The current implementation omits this header row and shows the full list directly. Should a sticky header with the running total be added in Phase 1, or deferred until Phase 4 has written at least one purchase record?
+
+**Q16. History tab — pull-to-refresh needed?**
+The spec notes that WatermelonDB reactive queries eliminate the need for pull-to-refresh. However, `usePurchases` uses React Query's `useQuery` (not a WatermelonDB `observe()` subscription), which is NOT live-reactive. Should this hook be converted to a WatermelonDB observer (`useObservable`) so Phase 4 writes appear without any user gesture?
+
+**Q17. Pre-existing TypeScript errors in feat-phase1**
+`app/(tabs)/items.tsx`, `app/(tabs)/index.tsx`, `app/(tabs)/rules.tsx`, and `src/__tests__/useItems.test.ts` have TypeScript errors from a p1-items-ui API shape inconsistency (`useItems` return value / export name mismatch). Should these be fixed on `feature/p1-history-ui` or deferred to `feature/p1-items-ui`?
+## Rules Engine (p1-rules-engine)
+
+**Q15. evaluationNote for inactive min_value / item_count rules**
+The spec provides an `evaluationNote` string only for inactive `trigger_item`
+rules (`"Trigger item rule is inactive"`). There is no specified string for
+inactive `min_value` or `item_count` rules. The current implementation reuses
+`"Trigger item rule is inactive"` as a placeholder. Should each rule type have
+its own inactive note (e.g. `"Min value rule is inactive"`,
+`"Item count rule is inactive"`)?
+
+**Q16. trigger_item pending note when triggerItemId is null**
+A `trigger_item` rule with `triggerItemId = null` is technically invalid but
+possible in the DB (field is optional). The engine currently uses an empty
+string for the item name in the "Waiting for trigger item…" note. Should rules
+with null `triggerItemId` be treated as inactive/invalid instead of pending?
+
+**Q17. evaluateAllStores — only active rules or all rules?**
+`evaluateAllStores` currently discovers stores by querying rules with
+`is_active = true`. Stores that only have inactive rules are excluded from the
+result map. Should the Rules tab show inactive-only stores too (requiring a
+query for all rules regardless of `is_active`)?
+
 *Last updated: 2026-03-24*
 
 ---

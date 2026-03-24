@@ -69,12 +69,12 @@ Settings is a stack route (`/settings`) accessible via a gear icon in every tab'
 
 ## WatermelonDB Migration Strategy
 
-- Version starts at `1`. Every schema change in future phases requires:
+- Version starts at `2`. The p1-scaffold agent initialised the project with `version: 1` internally, but the p1-db-schema agent began at version 2 to leave room for any scaffold-level migration that may be inserted retroactively. Every schema change in future phases requires:
   1. Bumping `appSchema({ version: N })` in `schema.ts`
   2. Adding a new entry `{ toVersion: N, steps: [...] }` in `migrations.ts`
   3. Only `addColumns` and `createTable` are safe without data loss. Column drops require a full migration.
 
-- The Phase 1 migration creates all 8 tables in a single `toVersion: 1` step.
+- The initial Phase 1 migration creates all 8 tables in a single `toVersion: 2` step. The `db.migrations.test.ts` tests against version 2 accordingly.
 
 ---
 
@@ -107,11 +107,83 @@ This is preferable to a fully bare workflow because:
 | Package | Version | Note |
 |---|---|---|
 | expo | ~55.0.8 | SDK 55 — React Native 0.83 |
-| @nozbe/watermelondb | ^0.28.0 | Stable; JSI disabled (jsi: false) until New Arch validated |
+| @nozbe/watermelondb | ^0.28.0 | Stable; JSI enabled (jsi: true) — matches spec default. Disable to jsi: false if JSI crashes appear on emulators. |
 | nativewind | ^4.2.3 | Requires babel plugin + metro transform |
 | @tanstack/react-query | ^5.95.2 | v5 API (no deprecated useQuery options) |
 | zod | ^4.3.6 | v4; `z.nativeEnum` still supported |
 | @hookform/resolvers | ^5.2.2 | v5; compatible with zod v4 |
+
+---
+
+---
+
+## p1-history-ui: No pagination in Phase 1
+
+All purchase records are loaded in a single query sorted by `placed_at` descending. WatermelonDB reactive updates handle new records arriving after Phase 4 completes an autonomous purchase. If the purchase history grows large, Phase 4 should add cursor-based pagination (a `LIMIT`/`OFFSET` query clause via `Q.skip` / `Q.take`).
+
+---
+
+## p1-history-ui: Expanded state is local UI state only
+
+The set of expanded purchase row IDs (`Set<string>`) lives in `useState` in the History screen. It is not persisted to WatermelonDB or AsyncStorage. A full app restart collapses all rows.
+
+---
+
+## p1-history-ui: Date formatting uses plain Date methods (no date library)
+
+`formatDate` / `formatDateShort` are implemented with `Date.prototype.getFullYear()`, `.getMonth()`, `.getDate()`, `.getDay()`. No `moment`, `date-fns`, or `dayjs` is added. Rationale: these libraries add non-trivial bundle size for a feature that only needs relative-day display and short-date formatting.
+
+---
+
+## p1-history-ui: purchaseStatusToVariant uses explicit Record map
+
+The original `StatusChip.tsx` cast `PurchaseStatus` to `ChipVariant` with `as ChipVariant`. `PurchaseStatus.Placed = 'placed'` was not a key in `ChipVariant` / `CHIP_STYLES`, which would have caused a runtime crash. The fix adds `'placed'` to both types and uses an explicit `Record<PurchaseStatus, ChipVariant>` map so exhaustiveness is compile-checked.
+
+---
+
+## p1-history-ui: Component and hook tests run in node environment
+
+React component rendering uses `react-test-renderer` (not `@testing-library/react-native`) because the project jest config uses `testEnvironment: 'node'`. `react-native` is mocked in `src/__tests__/__mocks__/react-native.js` to avoid native bridge dependencies. `@babel/preset-react` was added to the jest transform to support JSX in test files.
+
+---
+
+## p1-history-ui: Pre-existing TypeScript errors in feat-phase1
+
+Running `npx tsc --noEmit` on the `feat-phase1` base shows 7 TypeScript errors in `app/(tabs)/items.tsx`, `app/(tabs)/index.tsx`, `app/(tabs)/rules.tsx`, and `src/__tests__/useItems.test.ts` — all from incomplete p1-items-ui API surface changes (`useItems` return shape / export name changes). These errors are pre-existing and not introduced by p1-history-ui. All files touched by this branch (`app/(tabs)/history.tsx`, `src/components/StatusChip.tsx`, `jest.config.js`, test files) are error-free.
+
+---
+
+## Phase integration points (p1-history-ui)
+
+**Phase 2** will call `usePurchases` indirectly through the brand inference flow. The Claude API prompt will receive a formatted list of recent purchases for an item, built from `purchase_items.brand` and `purchase_items.product_title`. The `purchase_items` schema must not change between phases.
+
+**Phase 4** will write to `purchases` and `purchase_items` after each autonomous checkout. It will also call `updateListItemStatus` (from `useListItems`) to mark purchased items as `purchased`. The History tab will reactively update via WatermelonDB without any code changes in this agent.
+## Enum Types in src/types/enums.ts (deviation from p1-db-schema spec)
+
+The p1-db-schema spec placed type aliases (string unions) inline inside each model file (e.g. `export type AutomationType = "direct_amazon" | ...` in `Store.ts`). The implementation instead defines these as TypeScript `enum` values in `src/types/enums.ts` and re-exports them from each model. Reasons:
+
+1. Zod's `z.nativeEnum()` in `src/types/schemas.ts` requires real enum objects, not string union types.
+2. Centralising enums prevents copy-paste drift between model types and form schema types.
+3. The runtime string values are identical (e.g. `AutomationType.DirectAmazon === "direct_amazon"`), so WatermelonDB column storage is unaffected.
+
+---
+
+## Credential Vault Extra Functions (beyond p1-credential-vault spec)
+
+`src/services/credentialVault.ts` exports several functions not listed in the spec. These were added to support Phase 1 UI screens and are safe additions:
+
+- `deleteResendApiKey()` — explicit deletion without full clearAllCredentials
+- `hasResendApiKey()` — UI state check (no biometric gate, analogous to hasStoreCredentials)
+- `setHomeAddress(address)` / `getHomeAddress()` — stores the user's delivery address in SecureStore rather than plain SQLite; gated by biometrics on read
+- `clearNonStoreSecrets()` has been replaced by the spec-compliant `clearAllCredentials()` which clears store credentials too, requires biometrics, and returns a deletion count
+
+The `app_home_address_full` SecureStore key is app-scoped and follows the same naming convention as `app_resend_api_key`.
+
+---
+
+## Phase 3 Integration Points (Credential Vault)
+
+The Node.js sidecar running on localhost:3421 in Phase 3 will call `getStoreCredentials(storeId)` and `getSessionCookie(storeId)` before launching Playwright to place orders. The Phase 3 sidecar must handle `BiometricAuthError` — if the device is locked, the sidecar should surface a prompt to the user rather than failing silently.
 
 ---
 
