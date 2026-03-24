@@ -10,7 +10,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useItems } from '@/hooks/useItems';
+import { useItemSearch } from '@/hooks/useItems';
 import { createListItem } from '@/hooks/useListItems';
 import Item from '@/db/models/Item';
 import { BottomSheet } from './BottomSheet';
@@ -28,7 +28,7 @@ export function AddItemSheet({ isVisible, onClose, onAdd }: AddItemSheetProps) {
   const [quantity, setQuantity] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
 
-  const { data: searchResults = [] } = useItems(query);
+  const { items: searchResults = [] } = useItemSearch(query);
 
   function handleReset() {
     setQuery('');
