@@ -82,6 +82,15 @@ Where does the user find their retailer slug? Should the Stores form include a h
 **Q14. Target Direct automation scope**
 "Direct Target" automation is one of the three types. Does this mean Target.com directly, or Target via Instacart? If Target.com directly, does Phase 2 use Playwright/browser automation similar to Amazon, or Target's API?
 
+**Q15. `ItemCard` store name — prop vs. relation?**
+`ItemCard` currently receives `storeName: string` as a prop resolved by the parent screen. Should this instead be resolved via WatermelonDB's `@relation` on the `Item` model (which would make `ItemCard` fully self-contained but may cause N+1 queries)?
+
+**Q16. Item deletion cascade to `list_items`?**
+Deleting an item via `deleteItem()` leaves orphaned `list_item` rows that reference the deleted item ID. Should `deleteItem` also query and destroy related `list_items`? Or should the UI prevent deletion of items that appear on active lists?
+
+**Q17. `anchor_urls` management UI**
+The `Item` model has an `anchor_urls` field (JSON array of URLs for automation anchors). There is currently no UI for managing this field in `ItemFormSheet`. Should it be exposed as a tag-style multi-input, or is it developer-only configuration?
+
 ---
 
 ---
@@ -96,5 +105,26 @@ The spec notes that WatermelonDB reactive queries eliminate the need for pull-to
 
 **Q17. Pre-existing TypeScript errors in feat-phase1**
 `app/(tabs)/items.tsx`, `app/(tabs)/index.tsx`, `app/(tabs)/rules.tsx`, and `src/__tests__/useItems.test.ts` have TypeScript errors from a p1-items-ui API shape inconsistency (`useItems` return value / export name mismatch). Should these be fixed on `feature/p1-history-ui` or deferred to `feature/p1-items-ui`?
+## Rules Engine (p1-rules-engine)
+
+**Q15. evaluationNote for inactive min_value / item_count rules**
+The spec provides an `evaluationNote` string only for inactive `trigger_item`
+rules (`"Trigger item rule is inactive"`). There is no specified string for
+inactive `min_value` or `item_count` rules. The current implementation reuses
+`"Trigger item rule is inactive"` as a placeholder. Should each rule type have
+its own inactive note (e.g. `"Min value rule is inactive"`,
+`"Item count rule is inactive"`)?
+
+**Q16. trigger_item pending note when triggerItemId is null**
+A `trigger_item` rule with `triggerItemId = null` is technically invalid but
+possible in the DB (field is optional). The engine currently uses an empty
+string for the item name in the "Waiting for trigger item…" note. Should rules
+with null `triggerItemId` be treated as inactive/invalid instead of pending?
+
+**Q17. evaluateAllStores — only active rules or all rules?**
+`evaluateAllStores` currently discovers stores by querying rules with
+`is_active = true`. Stores that only have inactive rules are excluded from the
+result map. Should the Rules tab show inactive-only stores too (requiring a
+query for all rules regardless of `is_active`)?
 
 *Last updated: 2026-03-24*

@@ -452,7 +452,7 @@ interface RuleSection {
 export default function RulesScreen() {
   const { data: rulesWithRelations, isLoading } = usePurchaseRules();
   const { data: stores = [] } = useActiveStores();
-  const { data: items = [] } = useItems();
+  const { items } = useItems();
   const toggleRule = useToggleRuleActive();
 
   const [sheetVisible, setSheetVisible] = useState(false);

@@ -19,7 +19,7 @@ import { AppSettingsFormSchema, AppSettingsFormValues } from '@/types/schemas';
 import {
   setResendApiKey,
   hasResendApiKey,
-  clearNonStoreSecrets,
+  clearAllCredentials,
 } from '@/services/credentialVault';
 import { isBiometricsAvailable } from '@/services/biometrics';
 import database from "@/db";
@@ -401,7 +401,7 @@ function clearAllData() {
             await database.write(async () => {
               await database.unsafeResetDatabase();
             });
-            await clearNonStoreSecrets();
+            await clearAllCredentials();
             Alert.alert('Done', 'All data has been cleared. Restart the app.');
           } catch {
             Alert.alert('Error', 'Could not clear data.');
