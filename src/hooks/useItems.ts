@@ -1,134 +1,100 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Q } from '@nozbe/watermelondb';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import database from '@/db';
 import Item from '@/db/models/Item';
-import { UnitType } from '@/types/enums';
+import queryClient from '@/lib/queryClient';
+import { CreateItemInput, UpdateItemInput } from '@/types/items';
 
 export const ITEMS_QUERY_KEY = 'items';
 
-export function useItems(search?: string) {
-  return useQuery({
-    queryKey: [ITEMS_QUERY_KEY, search ?? ''],
+// ─── Reactive Hooks ───────────────────────────────────────────────────────────
+
+export function useItems(): { items: Item[]; isLoading: boolean; error: Error | null } {
+  const { data, isLoading, error } = useQuery({
+    queryKey: [ITEMS_QUERY_KEY],
     queryFn: async () => {
       const all = await database.get<Item>('items').query().fetch();
-      if (!search || search.trim() === '') return all;
-      const lower = search.toLowerCase();
-      return all.filter(
-        (item) =>
-          item.canonicalName.toLowerCase().includes(lower) ||
-          (item.defaultBrand ?? '').toLowerCase().includes(lower)
-      );
+      return [...all].sort((a, b) => a.canonicalName.localeCompare(b.canonicalName));
     },
   });
+  return { items: data ?? [], isLoading, error: (error as Error | null) };
 }
 
-export function useItem(itemId: string) {
-  return useQuery({
-    queryKey: [ITEMS_QUERY_KEY, itemId],
-    queryFn: () => database.get<Item>('items').find(itemId),
-    enabled: !!itemId,
+// Memoized in-memory filter — does NOT issue a new DB query per keystroke.
+export function useItemSearch(query: string): { items: Item[]; isLoading: boolean } {
+  const { items, isLoading } = useItems();
+  const filtered = useMemo(() => {
+    if (!query.trim()) return items;
+    const lower = query.toLowerCase();
+    return items.filter(
+      (item) =>
+        item.canonicalName.toLowerCase().includes(lower) ||
+        (item.defaultBrand ?? '').toLowerCase().includes(lower)
+    );
+  }, [items, query]);
+  return { items: filtered, isLoading };
+}
+
+export function useItem(id: string): { item: Item | null; isLoading: boolean } {
+  const { data, isLoading } = useQuery({
+    queryKey: [ITEMS_QUERY_KEY, id],
+    queryFn: () => database.get<Item>('items').find(id),
+    enabled: !!id,
   });
+  return { item: data ?? null, isLoading };
 }
 
-export interface CreateItemPayload {
-  canonicalName: string;
-  defaultStoreId: string;
-  defaultBrand: string | null;
-  unitType: UnitType;
-  reorderQty: number;
-  estimatedPriceCents: number | null;
-  notes: string | null;
-}
+// ─── Standalone Mutation Functions ────────────────────────────────────────────
 
-export function useCreateItem() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (payload: CreateItemPayload): Promise<Item> => {
-      let created!: Item;
-      await database.write(async () => {
-        created = await database.get<Item>('items').create((record) => {
-          record.canonicalName = payload.canonicalName;
-          record.defaultStoreId = payload.defaultStoreId;
-          record.defaultBrand = payload.defaultBrand;
-          record.unitType = payload.unitType;
-          record.reorderQty = payload.reorderQty;
-          record.anchorUrls = {};
-          record.estimatedPriceCents = payload.estimatedPriceCents;
-          record.notes = payload.notes;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (record as any)._raw.created_at = Date.now();
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (record as any)._raw.updated_at = Date.now();
-        });
-      });
-      return created;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [ITEMS_QUERY_KEY] });
-    },
+export async function createItem(input: CreateItemInput): Promise<void> {
+  await database.write(async () => {
+    await database.get<Item>('items').create((record) => {
+      record.canonicalName = input.canonicalName;
+      record.defaultStoreId = input.defaultStoreId;
+      record.defaultBrand = input.defaultBrand;
+      record.unitType = input.unitType;
+      record.reorderQty = input.reorderQty;
+      record.anchorUrls = {};
+      record.estimatedPriceCents = input.estimatedPriceCents;
+      record.notes = input.notes;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (record as any)._raw.created_at = Date.now();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (record as any)._raw.updated_at = Date.now();
+    });
   });
+  await queryClient.invalidateQueries({ queryKey: [ITEMS_QUERY_KEY] });
 }
 
-export interface UpdateItemPayload {
-  id: string;
-  canonicalName: string;
-  defaultStoreId: string;
-  defaultBrand: string | null;
-  unitType: UnitType;
-  reorderQty: number;
-  estimatedPriceCents: number | null;
-  notes: string | null;
-}
-
-export function useUpdateItem() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (payload: UpdateItemPayload): Promise<void> => {
-      const item = await database.get<Item>('items').find(payload.id);
-      await database.write(async () => {
-        await item.update((record) => {
-          record.canonicalName = payload.canonicalName;
-          record.defaultStoreId = payload.defaultStoreId;
-          record.defaultBrand = payload.defaultBrand;
-          record.unitType = payload.unitType;
-          record.reorderQty = payload.reorderQty;
-          record.estimatedPriceCents = payload.estimatedPriceCents;
-          record.notes = payload.notes;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (record as any)._raw.updated_at = Date.now();
-        });
-      });
-    },
-    onSuccess: (_, vars) => {
-      qc.invalidateQueries({ queryKey: [ITEMS_QUERY_KEY] });
-      qc.invalidateQueries({ queryKey: [ITEMS_QUERY_KEY, vars.id] });
-    },
+export async function updateItem(id: string, input: UpdateItemInput): Promise<void> {
+  const item = await database.get<Item>('items').find(id);
+  await database.write(async () => {
+    await item.update((record) => {
+      if (input.canonicalName !== undefined) record.canonicalName = input.canonicalName;
+      if (input.defaultStoreId !== undefined) record.defaultStoreId = input.defaultStoreId;
+      if (Object.prototype.hasOwnProperty.call(input, 'defaultBrand')) {
+        record.defaultBrand = input.defaultBrand ?? null;
+      }
+      if (input.unitType !== undefined) record.unitType = input.unitType;
+      if (input.reorderQty !== undefined) record.reorderQty = input.reorderQty;
+      if (Object.prototype.hasOwnProperty.call(input, 'estimatedPriceCents')) {
+        record.estimatedPriceCents = input.estimatedPriceCents ?? null;
+      }
+      if (Object.prototype.hasOwnProperty.call(input, 'notes')) {
+        record.notes = input.notes ?? null;
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (record as any)._raw.updated_at = Date.now();
+    });
   });
+  await queryClient.invalidateQueries({ queryKey: [ITEMS_QUERY_KEY] });
+  await queryClient.invalidateQueries({ queryKey: [ITEMS_QUERY_KEY, id] });
 }
 
-export function useDeleteItem() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (itemId: string): Promise<void> => {
-      const item = await database.get<Item>('items').find(itemId);
-      await database.write(async () => {
-        await item.destroyPermanently();
-      });
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [ITEMS_QUERY_KEY] });
-    },
+export async function deleteItem(id: string): Promise<void> {
+  const item = await database.get<Item>('items').find(id);
+  await database.write(async () => {
+    await item.destroyPermanently();
   });
-}
-
-export function useItemsByStore(storeId: string) {
-  return useQuery({
-    queryKey: [ITEMS_QUERY_KEY, 'byStore', storeId],
-    queryFn: () =>
-      database
-        .get<Item>('items')
-        .query(Q.where('default_store_id', storeId))
-        .fetch(),
-    enabled: !!storeId,
-  });
+  await queryClient.invalidateQueries({ queryKey: [ITEMS_QUERY_KEY] });
 }

@@ -67,7 +67,94 @@ export default function ListsScreen() {
       <View className="flex-1 items-center justify-center bg-gray-50">
         <ActivityIndicator size="large" color="#0d9488" />
       </View>
-    );
+    </BottomSheet>
+  );
+}
+
+// ─── List Item Row ─────────────────────────────────────────────────────────────
+
+interface ListItemRowProps {
+  entry: ListItemWithRelations;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+function ListItemRow({ entry, onEdit, onDelete }: ListItemRowProps) {
+  const { listItem, item } = entry;
+
+  return (
+    <SwipeableRow onDelete={onDelete}>
+      <Pressable
+        onPress={onEdit}
+        className="flex-row items-center px-4 py-3.5 border-b border-slate-100 active:bg-slate-50"
+      >
+        <View className="flex-1">
+          <Text className="text-sm font-semibold text-slate-800">
+            {item?.canonicalName ?? 'Unknown item'}
+          </Text>
+          {item?.defaultBrand ? (
+            <Text className="text-xs text-slate-500 mt-0.5">{item.defaultBrand}</Text>
+          ) : null}
+          <Text className="text-xs text-slate-400 mt-0.5">Qty: {listItem.quantity}</Text>
+        </View>
+        <StatusChip variant={listItemStatusToVariant(listItem.status)} />
+      </Pressable>
+    </SwipeableRow>
+  );
+}
+
+// ─── Section Header ────────────────────────────────────────────────────────────
+
+function StoreSectionHeader({ store, count }: { store: Store; count: number }) {
+  return (
+    <View className="flex-row items-center px-4 py-2 bg-surface border-b border-border">
+      <Text className="text-sm font-bold text-slate-700 flex-1">{store.name}</Text>
+      {count > 0 && (
+        <View className="bg-primary rounded-full px-2 py-0.5 min-w-[24px] items-center">
+          <Text className="text-white text-xs font-bold">{count}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+// ─── Main Screen ───────────────────────────────────────────────────────────────
+
+export default function ListsScreen() {
+  const { data: allItems, isLoading: listLoading } = useAllListItems();
+  const { data: activeStores, isLoading: storesLoading } = useActiveStores();
+  const { items: catalogItems } = useItems();
+  const deleteListItem = useDeleteListItem();
+
+  const [addSheetVisible, setAddSheetVisible] = useState(false);
+  const [editTarget, setEditTarget] = useState<{
+    id: string;
+    qty: number;
+    name: string;
+  } | null>(null);
+
+  const sections: Section[] = useMemo(() => {
+    if (!activeStores || !allItems) return [];
+    return activeStores
+      .map((store) => {
+        const entries = allItems.filter((e) => e.listItem.storeId === store.id);
+        const pending = entries.filter(
+          (e) => e.listItem.status === ListItemStatus.Pending
+        ).length;
+        return { store, data: entries, pendingCount: pending };
+      })
+      .filter((s) => s.data.length > 0);
+  }, [activeStores, allItems]);
+
+  function handleDeleteItem(listItemId: string) {
+    Alert.alert('Remove item', 'Remove this item from the list?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => deleteListItem.mutate(listItemId),
+      },
+    ]);
   }
 
   if (error) {
